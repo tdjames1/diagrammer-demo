@@ -12,7 +12,7 @@ importers <- citesData %>% select(Importer) %>% unique() %>% unlist(use.names = 
 exporters <- citesData %>% select(Exporter) %>% unique() %>% unlist(use.names = FALSE)
 originators <- citesDataOrigin %>% select(Origin) %>% unique() %>% unlist(use.names = FALSE)
 
-node_names <- unique(c(importers,exporters,origins))
+node_names <- unique(c(importers,exporters,originators))
 
 importer_nodes <-
     create_node_df(
