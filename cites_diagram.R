@@ -2,18 +2,24 @@ library(dplyr)
 library(DiagrammeR)
 library(RColorBrewer)
 
-citesData <- read.csv("cites_compdata.csv", stringsAsFactors = FALSE)
-
-citesDataOrigin <- filter(citesData, Origin != "")
+## CITES trade statistics derived from the CITES Trade Database, UNEP World Conservation Monitoring Centre, Cambridge, UK.
+citesData <- read.csv("data/comptab_Amazona_barbadensis_1975-2017.csv", stringsAsFactors = FALSE)
+desc <- "Trade in Amazona barbadensis 1975-2017"
 
 glimpse(citesData)
 
+## Origin is blank if the country of export is the country of origin, or if the country of origin is not reported
+citesDataOrigin <- filter(citesData, Origin != "")
+
+## Get nodes for each trade role
 importers <- citesData %>% select(Importer) %>% unique() %>% unlist(use.names = FALSE)
 exporters <- citesData %>% select(Exporter) %>% unique() %>% unlist(use.names = FALSE)
 originators <- citesDataOrigin %>% select(Origin) %>% unique() %>% unlist(use.names = FALSE)
 
+## Get all nodes
 node_names <- unique(c(importers,exporters,originators))
 
+## Create importer nodes
 importer_nodes <-
     create_node_df(
         n = length(unique(citesData$Importer)),
@@ -23,6 +29,7 @@ importer_nodes <-
         style = "filled",
         color = "aqua")
 
+## Create exporter nodes
 exporter_nodes <-
     create_node_df(
         n = length(unique(citesData$Exporter)),
@@ -32,6 +39,7 @@ exporter_nodes <-
         style = "filled",
         color = "darkturquoise")
 
+## Create origin nodes
 origin_nodes <-
     create_node_df(
         n = length(unique(citesDataOrigin$Origin)),
@@ -92,13 +100,45 @@ cites_graph <- create_graph(nodes_df = nodes,
                             edges_df = edges
                             )
 
+## We get a crazy graph because there are many edges between some node pairs.
 render_graph(cites_graph,
-             title = "Trade in Psittaciformes 1996-2016",layout = "nicely"
+             title = desc,
+             layout = "nicely"
              )
 
-
+## Filter to only reported imports
 cites_graph %>%
     select_edges(conditions = rel == "import") %>%
     render_graph()
 
-## Next: can we combine edges for trade between same country?
+## To make the diagram more manageable, combine edges for trade between same countries (taking the maximum reported quantity)
+exportSummary <- citesData %>%
+  group_by(Exporter, Importer) %>%
+  summarise(quantity = sum(max(Importer.reported.quantity, Exporter.reported.quantity, na.rm = TRUE)))
+
+## Create edges for trade summary
+## (N.B. It would be fun to calculate the distance between countries and set the edge lengths accordingly but for the moment I'll leave it to select default values.)
+edges_e2 <-
+  create_edge_df(
+    from = nodes$id[match(exportSummary$Exporter, nodes$type)],
+    to = nodes$id[match(exportSummary$Importer, nodes$type)],
+    rel = "export",
+    data = exportSummary$quantity,
+    penwidth = log(exportSummary$quantity+1)
+    )
+
+cites_graph2 <- create_graph(nodes_df = nodes,
+                             edges_df = edges_e2
+)
+
+render_graph(cites_graph2,
+             title = desc,
+             layout = "nicely"  # options are: nicely, circle, tree, kk, and fr
+)
+
+## TODO
+## Node size == connectedness (proportional to log(num direct trade links))
+## Node colour - geopolitical or other?
+## Arrow colour - source (e.g. captive-bred vs wild)? Would require alternative summary with grouping by source.
+## Year by year animation or split into pre- and post-CITES listing (1981)?
+## Remove XX node to avoid confusion
