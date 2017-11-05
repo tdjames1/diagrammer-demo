@@ -1,0 +1,30 @@
+digraph lifecycle {
+
+      # Node statements
+      node [shape = circle
+      size = 5
+      fontname = Helvetica
+      penwidth = 2.0]
+      Juv; Im; Ad; Div; Pair
+
+      # Edge statements
+      # edge [arrowhead = diamond]
+      Juv->Im; Im->Ad;
+      Ad->Pair [label = 'Pairing'
+      fontname = Helvetica];
+      Pair->Ad [label = 'Mortality'
+      fontname = Helvetica];
+      Pair->Juv [label = 'Recruitment'
+      fontname = Helvetica];
+      Pair->Div [label = 'Divorce'
+      fontname = Helvetica];
+      Div->Ad [label = '  p < 1'
+      fontname = Helvetica];
+      Juv->Juv;
+      Im->Im;
+      Div->Div;
+      Pair->Pair;
+
+      # Graph statement
+      graph [rankdir = LR]
+}
