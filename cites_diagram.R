@@ -71,7 +71,7 @@ edges_e <-
         data = citesData$Exporter.reported.quantity,
         penwidth = ifelse(is.na(citesData$Exporter.reported.quantity), 1,
                           log(citesData$Exporter.reported.quantity+1)),
-        color = pal[match(citesData$Term, unique(citesData$Term))]
+        color = pal[1]
     )
 
 edges_i <-
@@ -82,7 +82,7 @@ edges_i <-
         data = citesData$Importer.reported.quantity,
         penwidth = ifelse(is.na(citesData$Importer.reported.quantity), 1,
                           log(citesData$Importer.reported.quantity+1)),
-        color = pal[match(citesData$Term, unique(citesData$Term))]
+        color = pal[2]
     )
 
 edges_o <-
@@ -90,14 +90,13 @@ edges_o <-
         from = nodes$id[match(citesDataOrigin$Origin, nodes$type)],
         to = nodes$id[match(citesDataOrigin$Exporter, nodes$type)],
         rel = "origin",
-        color = "darkorchid",
+        color = pal[3],
         penwidth = 1,
         style = "dashed"
     )
 
 edges <- combine_edfs(edges_e,
-                      edges_i,
-                      edges_o)
+                      edges_i)
 
 cites_graph <- create_graph(nodes_df = nodes,
                             edges_df = edges
@@ -109,7 +108,7 @@ render_graph(cites_graph,
              layout = "nicely"
              )
 
-## Filter to only reported imports
+## Filter to only reported imports FIXME
 cites_graph %>%
     select_edges(conditions = rel == "import") %>%
     render_graph()

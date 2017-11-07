@@ -9,11 +9,12 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(DiagrammeR)
+library(DiagrammeRsvg) # required for export_graph()
 library(RColorBrewer)
 pal <- brewer.pal(n = 8, "Dark2")
 ```
 
-CITES trade statistics are derived from the [CITES Trade Database, UNEP World Conservation Monitoring Centre, Cambridge, UK](https://trade.cites.org/en/cites_trade/).
+The trade statistics used in this demonstration are derived from the CITES Trade Database[^1]. Under CITES rules, trade in CITES listed species must be recorded by exporting and importing countries. I downloaded a comparative tabulation for recorded trade in live _Amazona barbadensis_ parrots between 1975 and 2017.
 
 ```{r data-import}
 citesData <- read.csv("data/comptab_Amazona_barbadensis_1975-2017.csv",
@@ -21,11 +22,13 @@ citesData <- read.csv("data/comptab_Amazona_barbadensis_1975-2017.csv",
 desc <- "Trade in Amazona barbadensis 1975-2017"
 ```
 
+The first task is to set up nodes for trading countries:
+
 ```{r node-setup}
 ## Get list of unique node names for all trade roles
-node_names <- citesData %>% 
-  select(Importer, Exporter, Origin) %>% 
-  unlist(use.names = FALSE) %>% 
+node_names <- citesData %>%
+  select(Importer, Exporter, Origin) %>%
+  unlist(use.names = FALSE) %>%
   unique()
 node_names <- node_names[node_names != ""]
 
@@ -41,6 +44,8 @@ nodes <- create_node_df(
 )
 head(nodes)
 ```
+
+Next, I created edge relationships between trading countries, differentiating between reported exports and imports:
 
 ```{r edge-setup}
 ## Create edges for each trade relationship
@@ -73,43 +78,53 @@ edges <- combine_edfs(edges_e,
 
 head(edges)
 ```
+
+Now I can combine the nodes and edges to create and render a graph:
+
 ```{r create-graph-1}
 cites_graph <- create_graph(nodes_df = nodes,
                             edges_df = edges
                             )
 
-## We get a crazy graph because there are many edges between some node pairs.
 render_graph(cites_graph,
              title = desc,
              layout = "neato"
              )
 ```
 
-```{r}
+But this produces a crazy graph because there are many edges between node pairs.
+
+```{r, include = FALSE}
 ## Filter to only reported imports
 cites_graph %>%
     select_edges(conditions = rel == "import") %>%
     render_graph()
-
 ```
 
+Clearly a different approach is needed to make the diagram more manageable.
+I'll combine the edges for trade between the same countries, using the maximum of the reported quantities for exports and imports.
+
 ```{r}
-## To make the diagram more manageable, combine edges for trade between same countries (taking the maximum reported quantity)
+## Create export summary data
 exportSummary <- citesData %>%
   group_by(Exporter, Importer) %>%
   summarise(quantity = sum(max(Importer.reported.quantity, Exporter.reported.quantity, na.rm = TRUE)))
 
 ## Create edges for trade summary
-## (N.B. It would be fun to calculate the distance between countries and set the edge lengths accordingly but for the moment I'll leave it to select default values.)
 edges_e2 <-
   create_edge_df(
     from = nodes$id[match(exportSummary$Exporter, nodes$type)],
     to = nodes$id[match(exportSummary$Importer, nodes$type)],
     rel = "export",
-    data = exportSummary$quantity,
-    penwidth = log(exportSummary$quantity+1)
+    quantity = exportSummary$quantity,
+    penwidth = log(exportSummary$quantity+1),
+    color = pal[1]
     )
+```
 
+(It would be fun to calculate the distance between countries and set the edge lengths accordingly but for the moment I'll allow the algorithm to select default values.)
+
+```{r}
 cites_graph2 <- create_graph(nodes_df = nodes,
                              edges_df = edges_e2
 )
@@ -118,5 +133,9 @@ render_graph(cites_graph2,
              title = desc,
              layout = "nicely"  # options are: nicely, circle, tree, kk, and fr
 )
+
+export_graph(cites_graph2, file_type = "png", file_name = "cites_graph.png")
+
 ```
 
+[^1]: [CITES Trade Database, UNEP World Conservation Monitoring Centre, Cambridge, UK](https://trade.cites.org/en/cites_trade/).

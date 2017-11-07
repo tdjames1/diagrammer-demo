@@ -64,6 +64,19 @@ grViz("dot-lifecycle.gv")
     - Attributes for rendering e.g. colour, line width
 - Node and edge data frames can be combined: `combine_ndfs()`, `combine_edfs()`
 
+## Graph manipulation and analysis
+
+- Select node/edge subsets
+- Graph traversal
+    - Select traversed nodes
+    - Modify graph
+    - Calculate summaries
+- Inspection
+    - Node/edge summaries (`node_info()`, `edge_info()`)
+    - Presence of nodes/edges (`node_present()`, `edge_present()`)
+    - Counts (`node_count()`, `edge_count()`)
+    - etc...
+
 ## Documentation
 
 http://rich-iannone.github.io/DiagrammeR/
